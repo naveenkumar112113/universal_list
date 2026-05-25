@@ -87,7 +87,7 @@ export function ModelListPage() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: number; data: any }) => updateModel(id, data),
+    mutationFn: ({ id, data }: { id: string; data: any }) => updateModel(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['models'] });
       setIsModalOpen(false);
@@ -99,7 +99,7 @@ export function ModelListPage() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id: number) => deleteModel(id),
+    mutationFn: (id: string) => deleteModel(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['models'] });
       setDeleteTarget(null);
@@ -151,8 +151,8 @@ export function ModelListPage() {
 
     const payload = {
       name: modelName.trim(),
-      brandId: Number(brandId),
-      categoryId: Number(categoryId),
+      brandId,
+      categoryId,
       isVerified,
       aliases: aliases.split(',').map(a => a.trim()).filter(Boolean),
       compatibilityLists: compatibilities.split(',').map(c => ({

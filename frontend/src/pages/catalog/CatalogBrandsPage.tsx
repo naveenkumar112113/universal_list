@@ -20,7 +20,7 @@ export function CatalogBrandsPage() {
     queryFn: getCategories
   });
 
-  const category = categoriesData?.data?.find((c: any) => c.id === Number(categoryId));
+  const category = categoriesData?.data?.find((c: any) => String(c.id) === String(categoryId));
   const categoryName = category ? category.name : 'Display Connector'; // Fallback
   const brands = brandsData?.data || [];
 

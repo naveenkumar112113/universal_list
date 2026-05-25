@@ -3,16 +3,16 @@ generator client {
 }
 
 datasource db {
-  provider = "mysql"
+  provider = "mongodb"
   url      = env("DATABASE_URL")
 }
 
 model User {
-  id             Int             @id @default(autoincrement())
+  id             String          @id @default(auto()) @map("_id") @db.ObjectId
   name           String
   email          String          @unique
   password       String
-  roleId         Int
+  roleId         String          @db.ObjectId
   role           Role            @relation(fields: [roleId], references: [id])
   status         String          @default("active")
   lastLogin      DateTime?
@@ -28,20 +28,22 @@ model User {
 }
 
 model Role {
-  id          Int          @id @default(autoincrement())
-  name        String       @unique // Super Admin, Admin, Editor, Technician, Premium User, Guest
-  users       User[]
-  permissions Permission[] @relation("RolePermissions")
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  id            String       @id @default(auto()) @map("_id") @db.ObjectId
+  name          String       @unique // Super Admin, Admin, Editor, Technician, Premium User, Guest
+  users         User[]
+  permissionIds String[]     @db.ObjectId
+  permissions   Permission[] @relation(fields: [permissionIds], references: [id])
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
 
   @@map("roles")
 }
 
 model Permission {
-  id        Int      @id @default(autoincrement())
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
   name      String   @unique
-  roles     Role[]   @relation("RolePermissions")
+  roleIds   String[] @db.ObjectId
+  roles     Role[]   @relation(fields: [roleIds], references: [id])
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -49,7 +51,7 @@ model Permission {
 }
 
 model Brand {
-  id        Int      @id @default(autoincrement())
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
   name      String   @unique
   logoUrl   String?
   models    Model[]
@@ -60,7 +62,7 @@ model Brand {
 }
 
 model Category {
-  id        Int      @id @default(autoincrement())
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
   name      String   @unique // Display connector, Combo, Touch/OCA, Battery, Frame, etc.
   models    Model[]
   createdAt DateTime @default(now())
@@ -70,14 +72,14 @@ model Category {
 }
 
 model Model {
-  id                 Int                 @id @default(autoincrement())
+  id                 String              @id @default(auto()) @map("_id") @db.ObjectId
   name               String
-  brandId            Int
+  brandId            String              @db.ObjectId
   brand              Brand               @relation(fields: [brandId], references: [id])
-  categoryId         Int
+  categoryId         String              @db.ObjectId
   category           Category            @relation(fields: [categoryId], references: [id])
   imageUrl           String?
-  notes              String?             @db.Text
+  notes              String?
   isVerified         Boolean             @default(false)
   aliases            ModelAlias[]
   tags               ModelTag[]
@@ -94,9 +96,9 @@ model Model {
 }
 
 model ModelAlias {
-  id        Int      @id @default(autoincrement())
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
   aliasName String
-  modelId   Int
+  modelId   String   @db.ObjectId
   model     Model    @relation(fields: [modelId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
 
@@ -105,9 +107,9 @@ model ModelAlias {
 }
 
 model ModelTag {
-  id        Int      @id @default(autoincrement())
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
   tagName   String
-  modelId   Int
+  modelId   String   @db.ObjectId
   model     Model    @relation(fields: [modelId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
 
@@ -116,8 +118,8 @@ model ModelTag {
 }
 
 model CompatibilityList {
-  id              Int      @id @default(autoincrement())
-  modelId         Int
+  id              String   @id @default(auto()) @map("_id") @db.ObjectId
+  modelId         String   @db.ObjectId
   model           Model    @relation(fields: [modelId], references: [id], onDelete: Cascade)
   compatibleWith  String // E.g., "iPhone 12 Pro Max"
   connectorType   String?
@@ -131,10 +133,10 @@ model CompatibilityList {
 }
 
 model Favorite {
-  id        Int      @id @default(autoincrement())
-  userId    Int
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String   @db.ObjectId
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  modelId   Int
+  modelId   String   @db.ObjectId
   model     Model    @relation(fields: [modelId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
 
@@ -143,19 +145,19 @@ model Favorite {
 }
 
 model Notification {
-  id        Int      @id @default(autoincrement())
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
   title     String
   message   String
   type      String   // push, in-app, email
   isRead    Boolean  @default(false)
-  userId    Int?
+  userId    String?  @db.ObjectId
   createdAt DateTime @default(now())
 
   @@map("notifications")
 }
 
 model SearchKeyword {
-  id        Int      @id @default(autoincrement())
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
   keyword   String   @unique
   count     Int      @default(1)
   createdAt DateTime @default(now())
@@ -166,8 +168,8 @@ model SearchKeyword {
 }
 
 model SearchHistory {
-  id        Int      @id @default(autoincrement())
-  userId    Int
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String   @db.ObjectId
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   query     String
   createdAt DateTime @default(now())
@@ -176,11 +178,11 @@ model SearchHistory {
 }
 
 model SupportTicket {
-  id          Int      @id @default(autoincrement())
-  userId      Int
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId      String   @db.ObjectId
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   subject     String
-  description String   @db.Text
+  description String
   status      String   @default("open") // open, in_progress, resolved
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -189,8 +191,8 @@ model SupportTicket {
 }
 
 model Subscription {
-  id        Int      @id @default(autoincrement())
-  userId    Int
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String   @db.ObjectId
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   plan      String   // premium, basic
   status    String   // active, expired, cancelled
@@ -203,12 +205,12 @@ model Subscription {
 }
 
 model AuditLog {
-  id        Int      @id @default(autoincrement())
-  userId    Int
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String   @db.ObjectId
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   action    String
   resource  String
-  details   String?  @db.Text
+  details   String?
   createdAt DateTime @default(now())
 
   @@map("audit_logs")

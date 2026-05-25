@@ -45,7 +45,7 @@ export const createCategory = async (req: Request, res: Response, next: NextFunc
 
 export const updateCategory = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const categoryId = parseInt(req.params.id as string);
+    const categoryId = req.params.id as string;
     const validatedData = categorySchema.parse(req.body);
 
     const category = await prisma.category.update({
@@ -64,7 +64,7 @@ export const updateCategory = async (req: Request, res: Response, next: NextFunc
 
 export const deleteCategory = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const categoryId = parseInt(req.params.id as string);
+    const categoryId = req.params.id as string;
     await prisma.category.delete({ where: { id: categoryId } });
     res.status(200).json({ success: true, message: 'Category deleted successfully' });
   } catch (error) {

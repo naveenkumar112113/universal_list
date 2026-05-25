@@ -46,7 +46,7 @@ export const createBrand = async (req: Request, res: Response, next: NextFunctio
 
 export const updateBrand = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const brandId = parseInt(req.params.id as string);
+    const brandId = req.params.id as string;
     const validatedData = brandSchema.parse(req.body);
 
     const brand = await prisma.brand.update({
@@ -65,7 +65,7 @@ export const updateBrand = async (req: Request, res: Response, next: NextFunctio
 
 export const deleteBrand = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const brandId = parseInt(req.params.id as string);
+    const brandId = req.params.id as string;
     await prisma.brand.delete({ where: { id: brandId } });
     res.status(200).json({ success: true, message: 'Brand deleted successfully' });
   } catch (error) {

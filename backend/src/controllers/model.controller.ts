@@ -4,8 +4,8 @@ import { z } from 'zod';
 
 const modelSchema = z.object({
   name: z.string().min(1, "Model name is required"),
-  brandId: z.number().int().positive(),
-  categoryId: z.number().int().positive(),
+  brandId: z.string().min(1, "Brand ID is required"),
+  categoryId: z.string().min(1, "Category ID is required"),
   imageUrl: z.string().url().optional().or(z.literal('')),
   notes: z.string().optional(),
   isVerified: z.boolean().optional(),
@@ -25,8 +25,8 @@ export const getModels = async (req: Request, res: Response, next: NextFunction)
     const skip = (page - 1) * limit;
     
     // Filtering
-    const brandId = req.query.brandId ? parseInt(req.query.brandId as string) : undefined;
-    const categoryId = req.query.categoryId ? parseInt(req.query.categoryId as string) : undefined;
+    const brandId = req.query.brandId as string || undefined;
+    const categoryId = req.query.categoryId as string || undefined;
     
     const whereClause: any = {};
     if (brandId) whereClause.brandId = brandId;
@@ -66,7 +66,7 @@ export const getModels = async (req: Request, res: Response, next: NextFunction)
 
 export const getModelById = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const modelId = parseInt(req.params.id as string);
+    const modelId = req.params.id as string;
     const model = await prisma.model.findUnique({
       where: { id: modelId },
       include: {
@@ -137,15 +137,15 @@ export const createModel = async (req: Request, res: Response, next: NextFunctio
 
 export const updateModel = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const modelId = parseInt(req.params.id as string);
+    const modelId = req.params.id as string;
     const { name, brandId, categoryId, isVerified, aliases, compatibilityLists } = req.body;
 
     const model = await prisma.model.update({
       where: { id: modelId },
       data: {
         ...(name && { name }),
-        ...(brandId && { brandId: parseInt(brandId) }),
-        ...(categoryId && { categoryId: parseInt(categoryId) }),
+        ...(brandId && { brandId }),
+        ...(categoryId && { categoryId }),
         ...(isVerified !== undefined && { isVerified }),
         ...(aliases && {
           aliases: {
@@ -175,7 +175,7 @@ export const updateModel = async (req: Request, res: Response, next: NextFunctio
 
 export const deleteModel = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const modelId = parseInt(req.params.id as string);
+    const modelId = req.params.id as string;
     await prisma.model.delete({
       where: { id: modelId }
     });
@@ -201,16 +201,15 @@ export const bulkImportModels = async (req: Request, res: Response, next: NextFu
       .pipe(csvParser())
       .on('data', (data) => results.push(data))
       .on('end', async () => {
-        // Here we could parse and insert into DB
         // Format assumed: Model Name, Brand ID, Category ID, Compatible With (comma separated)
         let importedCount = 0;
         
         for (const row of results) {
-           const brandId = parseInt(row['Brand ID'] || row.brandId);
-           const categoryId = parseInt(row['Category ID'] || row.categoryId);
+           const brandId = String(row['Brand ID'] || row.brandId || '').trim();
+           const categoryId = String(row['Category ID'] || row.categoryId || '').trim();
            const name = row['Model Name'] || row.name;
 
-           if (!name || isNaN(brandId) || isNaN(categoryId)) continue;
+           if (!name || !brandId || !categoryId) continue;
 
            const newModel = await prisma.model.create({
              data: {
@@ -264,8 +263,8 @@ export const requestModel = async (req: Request, res: Response, next: NextFuncti
     const model = await prisma.model.create({
       data: {
         name,
-        brandId: Number(brandId),
-        categoryId: Number(categoryId),
+        brandId: String(brandId),
+        categoryId: String(categoryId),
         isVerified: false,
         notes: notes || 'Model requested by user'
       }

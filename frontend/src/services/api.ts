@@ -48,12 +48,12 @@ export const createModel = async (modelData: any) => {
   return response.data;
 };
 
-export const updateModel = async (id: number, modelData: any) => {
+export const updateModel = async (id: string, modelData: any) => {
   const response = await api.put(`/models/${id}`, modelData);
   return response.data;
 };
 
-export const deleteModel = async (id: number) => {
+export const deleteModel = async (id: string) => {
   const response = await api.delete(`/models/${id}`);
   return response.data;
 };
@@ -63,12 +63,12 @@ export const createBrand = async (brandData: any) => {
   return response.data;
 };
 
-export const updateBrand = async (id: number, brandData: any) => {
+export const updateBrand = async (id: string, brandData: any) => {
   const response = await api.put(`/brands/${id}`, brandData);
   return response.data;
 };
 
-export const deleteBrand = async (id: number) => {
+export const deleteBrand = async (id: string) => {
   const response = await api.delete(`/brands/${id}`);
   return response.data;
 };

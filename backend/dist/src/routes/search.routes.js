@@ -1,0 +1,10 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const search_controller_1 = require("../controllers/search.controller");
+const router = (0, express_1.Router)();
+router.get('/', search_controller_1.searchModels);
+router.get('/models', search_controller_1.searchModels);
+router.get('/suggest', search_controller_1.getSuggestions);
+router.get('/trending', search_controller_1.getTrendingSearches);
+exports.default = router;

@@ -25,8 +25,8 @@ export function CatalogModelsPage() {
     queryFn: getCategories
   });
 
-  const category = categoriesData?.data?.find((c: any) => c.id === Number(categoryId));
-  const brand = brandsData?.data?.find((b: any) => b.id === Number(brandId));
+  const category = categoriesData?.data?.find((c: any) => String(c.id) === String(categoryId));
+  const brand = brandsData?.data?.find((b: any) => String(b.id) === String(brandId));
   
   const categoryName = category ? category.name : '';
   const brandName = brand ? brand.name : 'Brand';

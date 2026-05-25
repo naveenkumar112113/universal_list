@@ -1,9 +1,10 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
+import prisma from '../config/db';
 
 interface JwtPayload {
-  id: number;
-  roleId: number;
+  id: string;
+  roleId: string;
 }
 
 declare global {
@@ -40,9 +41,6 @@ export const authorize = (roles: string[]) => {
         return;
       }
       
-      // In a real scenario, you'd fetch the role from DB or include role name in JWT.
-      // Assuming roleId is in JWT and we need to verify.
-      const prisma = (await import('../config/db')).default;
       const userRole = await prisma.role.findUnique({ where: { id: req.user.roleId } });
 
       if (!userRole || !roles.includes(userRole.name)) {

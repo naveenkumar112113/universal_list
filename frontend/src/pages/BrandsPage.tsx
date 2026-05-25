@@ -39,7 +39,7 @@ export function BrandsPage() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: number; data: any }) => updateBrand(id, data),
+    mutationFn: ({ id, data }: { id: string; data: any }) => updateBrand(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['brands'] });
       setIsModalOpen(false);
@@ -53,7 +53,7 @@ export function BrandsPage() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id: number) => deleteBrand(id),
+    mutationFn: (id: string) => deleteBrand(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['brands'] });
       setDeleteTarget(null);

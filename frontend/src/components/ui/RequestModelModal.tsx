@@ -48,8 +48,8 @@ export function RequestModelModal({ onClose }: RequestModelModalProps) {
 
     requestMutation.mutate({
       name: modelName.trim(),
-      brandId: Number(brandId),
-      categoryId: Number(categoryId),
+      brandId,
+      categoryId,
       notes: notes.trim() || undefined
     });
   };
