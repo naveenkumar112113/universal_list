@@ -20,8 +20,22 @@ const adSettings_routes_1 = __importDefault(require("./routes/adSettings.routes"
 const app = (0, express_1.default)();
 // Global Middlewares
 app.use((0, helmet_1.default)()); // Security headers
+const allowedOrigins = [
+    'http://localhost:5173',
+    'http://127.0.0.1:5173',
+    process.env.FRONTEND_URL
+].filter(Boolean);
 app.use((0, cors_1.default)({
-    origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+    origin: (origin, callback) => {
+        if (!origin)
+            return callback(null, true);
+        if (allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV === 'development') {
+            callback(null, true);
+        }
+        else {
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
     credentials: true
 })); // CORS setup
 app.use((0, morgan_1.default)('dev')); // HTTP request logger
