@@ -1,0 +1,61 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", "SF Pro Display", sans-serif;
+  --color-primary: #4F46E5; /* Indigo */
+  --color-primary-hover: #4338CA;
+  --color-secondary: #0ea5e9; /* Electric blue */
+  --color-accent: #10b981; /* Neon green */
+  
+  --color-background: #ffffff;
+  --color-foreground: #09090b;
+  --color-card: #ffffff;
+  --color-card-foreground: #09090b;
+  --color-border: #e4e4e7;
+  --color-input: #e4e4e7;
+  --color-ring: #4F46E5;
+
+  --radius-lg: 24px;
+  --radius-md: 16px;
+  --radius-sm: 8px;
+}
+
+/* Custom base styles for dark mode */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-background: #020617; /* Deep navy dark mode */
+    --color-foreground: #f8fafc;
+    --color-card: #0f172a;
+    --color-card-foreground: #f8fafc;
+    --color-border: #1e293b;
+    --color-input: #1e293b;
+    --color-ring: #4F46E5;
+  }
+}
+
+:root {
+  background-color: var(--color-background);
+  color: var(--color-foreground);
+  font-family: var(--font-sans);
+}
+
+body {
+  margin: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.glass-panel {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+}
+
+@media (prefers-color-scheme: dark) {
+  .glass-panel {
+    background: rgba(15, 23, 42, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+  }
+}

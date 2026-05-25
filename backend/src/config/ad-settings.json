@@ -1,0 +1,26 @@
+{
+  "home_top": {
+    "slotKey": "home_top",
+    "isActive": false,
+    "adClient": "ca-pub-3940256099942544",
+    "adSlot": "6300978111"
+  },
+  "home_mid": {
+    "slotKey": "home_mid",
+    "isActive": false,
+    "adClient": "ca-pub-3940256099942544",
+    "adSlot": "6300978111"
+  },
+  "sidebar": {
+    "slotKey": "sidebar",
+    "isActive": false,
+    "adClient": "ca-pub-3940256099942544",
+    "adSlot": "6300978111"
+  },
+  "in_list": {
+    "slotKey": "in_list",
+    "isActive": false,
+    "adClient": "ca-pub-3940256099942544",
+    "adSlot": "6300978111"
+  }
+}

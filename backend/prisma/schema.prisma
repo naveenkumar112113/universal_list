@@ -1,0 +1,215 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             Int             @id @default(autoincrement())
+  name           String
+  email          String          @unique
+  password       String
+  roleId         Int
+  role           Role            @relation(fields: [roleId], references: [id])
+  status         String          @default("active")
+  lastLogin      DateTime?
+  favorites      Favorite[]
+  searchHistory  SearchHistory[]
+  supportTickets SupportTicket[]
+  subscriptions  Subscription[]
+  auditLogs      AuditLog[]
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  @@map("users")
+}
+
+model Role {
+  id          Int          @id @default(autoincrement())
+  name        String       @unique // Super Admin, Admin, Editor, Technician, Premium User, Guest
+  users       User[]
+  permissions Permission[] @relation("RolePermissions")
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@map("roles")
+}
+
+model Permission {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  roles     Role[]   @relation("RolePermissions")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("permissions")
+}
+
+model Brand {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  logoUrl   String?
+  models    Model[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("brands")
+}
+
+model Category {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique // Display connector, Combo, Touch/OCA, Battery, Frame, etc.
+  models    Model[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("categories")
+}
+
+model Model {
+  id                 Int                 @id @default(autoincrement())
+  name               String
+  brandId            Int
+  brand              Brand               @relation(fields: [brandId], references: [id])
+  categoryId         Int
+  category           Category            @relation(fields: [categoryId], references: [id])
+  imageUrl           String?
+  notes              String?             @db.Text
+  isVerified         Boolean             @default(false)
+  aliases            ModelAlias[]
+  tags               ModelTag[]
+  compatibilityLists CompatibilityList[]
+  favorites          Favorite[]
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+
+  // Indexes for faster searching
+  @@index([name])
+  @@index([brandId])
+  @@index([categoryId])
+  @@map("models")
+}
+
+model ModelAlias {
+  id        Int      @id @default(autoincrement())
+  aliasName String
+  modelId   Int
+  model     Model    @relation(fields: [modelId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@index([aliasName])
+  @@map("model_aliases")
+}
+
+model ModelTag {
+  id        Int      @id @default(autoincrement())
+  tagName   String
+  modelId   Int
+  model     Model    @relation(fields: [modelId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@index([tagName])
+  @@map("model_tags")
+}
+
+model CompatibilityList {
+  id              Int      @id @default(autoincrement())
+  modelId         Int
+  model           Model    @relation(fields: [modelId], references: [id], onDelete: Cascade)
+  compatibleWith  String // E.g., "iPhone 12 Pro Max"
+  connectorType   String?
+  type            String? // Display, Battery, etc.
+  isVerified      Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([compatibleWith])
+  @@map("compatibility_lists")
+}
+
+model Favorite {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  modelId   Int
+  model     Model    @relation(fields: [modelId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, modelId])
+  @@map("favorites")
+}
+
+model Notification {
+  id        Int      @id @default(autoincrement())
+  title     String
+  message   String
+  type      String   // push, in-app, email
+  isRead    Boolean  @default(false)
+  userId    Int?
+  createdAt DateTime @default(now())
+
+  @@map("notifications")
+}
+
+model SearchKeyword {
+  id        Int      @id @default(autoincrement())
+  keyword   String   @unique
+  count     Int      @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([count(sort: Desc)])
+  @@map("search_keywords")
+}
+
+model SearchHistory {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  query     String
+  createdAt DateTime @default(now())
+
+  @@map("search_history")
+}
+
+model SupportTicket {
+  id          Int      @id @default(autoincrement())
+  userId      Int
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subject     String
+  description String   @db.Text
+  status      String   @default("open") // open, in_progress, resolved
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("support_tickets")
+}
+
+model Subscription {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan      String   // premium, basic
+  status    String   // active, expired, cancelled
+  startDate DateTime
+  endDate   DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("subscriptions")
+}
+
+model AuditLog {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  action    String
+  resource  String
+  details   String?  @db.Text
+  createdAt DateTime @default(now())
+
+  @@map("audit_logs")
+}
