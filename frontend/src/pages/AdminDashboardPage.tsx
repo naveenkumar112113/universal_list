@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { 
   LayoutDashboard,
   Layers, 
@@ -60,9 +60,12 @@ import {
   getAdSettings, 
   updateAdSettings, 
   bulkImportModels,
+  bulkImportModelsWithProgress,
+  type BulkImportProgressData,
   downloadSampleCsv
 } from '../services/api';
 import { ModelDetailsModal } from '../components/catalog/ModelDetailsModal';
+import { BulkImportProgressBar } from '../components/admin/BulkImportProgressBar';
 
 type AdminTab = 'overview' | 'categories' | 'models' | 'ai_updates' | 'ai_settings' | 'users' | 'ads';
 
@@ -373,6 +376,9 @@ export function AdminDashboardPage() {
   // ==========================================
   const [selectedSlot, setSelectedSlot] = useState<'home_top' | 'home_mid' | 'sidebar' | 'in_list'>('home_top');
   const [isUploading, setIsUploading] = useState(false);
+  const [importProgress, setImportProgress] = useState<BulkImportProgressData | null>(null);
+  const [importFileName, setImportFileName] = useState<string>('');
+  const importAbortControllerRef = useRef<AbortController | null>(null);
   const [localSettings, setLocalSettings] = useState<any>({
     home_top: { slotKey: 'home_top', isActive: false, adClient: '', adSlot: '' },
     home_mid: { slotKey: 'home_mid', isActive: false, adClient: '', adSlot: '' },
@@ -400,26 +406,71 @@ export function AdminDashboardPage() {
     onError: (err: any) => alert(err.response?.data?.message || 'Failed to save ad settings'),
   });
 
-  const bulkImportMutation = useMutation({
-    mutationFn: bulkImportModels,
-    onSuccess: (data: any) => {
-      setIsUploading(false);
-      queryClient.invalidateQueries({ queryKey: ['models'] });
-      queryClient.invalidateQueries({ queryKey: ['admin-metrics'] });
-      alert(data.message || 'Bulk import completed successfully!');
-    },
-    onError: (err: any) => {
-      setIsUploading(false);
-      alert(err.response?.data?.message || 'Failed to import CSV file');
-    }
-  });
-
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    setImportFileName(file.name);
     setIsUploading(true);
-    bulkImportMutation.mutate(file);
-    e.target.value = '';
+    setImportProgress({
+      status: 'pending',
+      total: 0,
+      inserted: 0,
+      failed: 0,
+      progress: 0,
+      message: `Reading and parsing "${file.name}"...`,
+    });
+
+    const abortController = new AbortController();
+    importAbortControllerRef.current = abortController;
+
+    try {
+      await bulkImportModelsWithProgress(
+        file,
+        (progressData) => {
+          setImportProgress(progressData);
+        },
+        abortController.signal
+      );
+
+      queryClient.invalidateQueries({ queryKey: ['models'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-metrics'] });
+    } catch (err: any) {
+      if (err.name === 'AbortError') {
+        setImportProgress((prev) => ({
+          status: 'failed',
+          total: prev?.total || 0,
+          inserted: prev?.inserted || 0,
+          failed: prev?.failed || 0,
+          progress: prev?.progress || 0,
+          message: 'Import cancelled by user.',
+        }));
+      } else {
+        setImportProgress((prev) => ({
+          status: 'failed',
+          total: prev?.total || 0,
+          inserted: prev?.inserted || 0,
+          failed: prev?.failed || 0,
+          progress: prev?.progress || 0,
+          message: err.message || 'Failed to import CSV file',
+        }));
+      }
+    } finally {
+      setIsUploading(false);
+      importAbortControllerRef.current = null;
+      e.target.value = '';
+    }
+  };
+
+  const handleCancelImport = () => {
+    if (importAbortControllerRef.current) {
+      importAbortControllerRef.current.abort();
+    }
+  };
+
+  const handleResetImport = () => {
+    setImportProgress(null);
+    setImportFileName('');
   };
 
   const [isDownloadingSample, setIsDownloadingSample] = useState(false);
@@ -1733,27 +1784,30 @@ export function AdminDashboardPage() {
                 </button>
               </div>
 
-              <div className="border-2 border-dashed border-gray-200 dark:border-gray-800 rounded-2xl p-6 text-center hover:bg-gray-50 dark:hover:bg-gray-900/50 transition-colors cursor-pointer relative">
-                <input
-                  type="file"
-                  accept=".csv"
-                  onChange={handleFileUpload}
-                  disabled={isUploading}
-                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+              {importProgress ? (
+                <BulkImportProgressBar
+                  progressData={importProgress}
+                  isProcessing={isUploading}
+                  fileName={importFileName}
+                  onReset={handleResetImport}
+                  onCancel={handleCancelImport}
                 />
-                {isUploading ? (
-                  <div className="flex flex-col items-center">
-                    <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mb-2"></div>
-                    <p className="font-bold text-xs">Importing models into MySQL database...</p>
-                  </div>
-                ) : (
+              ) : (
+                <div className="border-2 border-dashed border-gray-200 dark:border-gray-800 rounded-2xl p-6 text-center hover:bg-gray-50 dark:hover:bg-gray-900/50 transition-colors cursor-pointer relative">
+                  <input
+                    type="file"
+                    accept=".csv"
+                    onChange={handleFileUpload}
+                    disabled={isUploading}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                  />
                   <div className="flex flex-col items-center space-y-2">
                     <Upload className="w-8 h-8 text-blue-500" />
                     <span className="font-bold text-xs text-gray-800 dark:text-gray-200">Click or Drag CSV here</span>
                     <span className="text-[10px] text-gray-400">Supported columns: Model Name, Brand, Category, Compatible Models</span>
                   </div>
-                )}
-              </div>
+                </div>
+              )}
 
               {/* Sample Template Columns Guide */}
               <div className="p-3.5 bg-gray-50 dark:bg-gray-900/60 border border-gray-100 dark:border-gray-800/60 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">

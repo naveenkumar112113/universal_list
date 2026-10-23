@@ -10,6 +10,7 @@ import {
   deleteModel,
   requestModel,
   bulkImportModels,
+  getBulkImportProgress,
   exportSampleCsv,
   addCompatibilityRelationship
 } from '../controllers/model.controller';
@@ -31,6 +32,7 @@ const upload = multer({ storage });
 // Public Routes
 router.get('/', getModels);
 router.get('/sample-csv', exportSampleCsv);
+router.get('/bulk-import/progress/:importId', authenticate, authorize(['Super Admin', 'Admin']), getBulkImportProgress);
 router.get('/:id', getModelById);
 router.get('/:id/compatibility', getModelCompatibility);
 router.post('/request', requestModel);

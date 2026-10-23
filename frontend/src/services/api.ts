@@ -157,6 +157,133 @@ export const requestModel = async (requestData: any) => {
   return response.data;
 };
 
+export interface BulkImportProgressData {
+  type?: 'start' | 'progress' | 'complete' | 'error';
+  importId?: string;
+  status: 'pending' | 'processing' | 'completed' | 'failed';
+  total: number;
+  inserted: number;
+  newModels?: number;
+  duplicates?: number;
+  failed: number;
+  progress: number;
+  currentModel?: string;
+  message?: string;
+  errors?: Array<{ row: number; name?: string; message: string }>;
+}
+
+export const bulkImportModelsWithProgress = async (
+  file: File,
+  onProgress: (data: BulkImportProgressData) => void,
+  signal?: AbortSignal
+): Promise<BulkImportProgressData> => {
+  const token = localStorage.getItem('token');
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const response = await fetch(`${API_URL}/models/bulk-import?stream=true`, {
+    method: 'POST',
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      Accept: 'text/event-stream',
+    },
+    body: formData,
+    signal,
+  });
+
+  if (!response.ok && !response.body) {
+    let errMessage = `Import failed with status ${response.status}`;
+    try {
+      const errJson = await response.json();
+      errMessage = errJson.message || errMessage;
+    } catch (e) {
+      // ignore
+    }
+    throw new Error(errMessage);
+  }
+
+  const contentType = response.headers.get('content-type') || '';
+  if (!contentType.includes('text/event-stream')) {
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.message || 'Bulk import failed');
+    }
+    const finalData: BulkImportProgressData = {
+      type: 'complete',
+      status: 'completed',
+      total: data.data?.total || 0,
+      inserted: data.data?.inserted || 0,
+      newModels: data.data?.newModels || 0,
+      duplicates: data.data?.duplicates || 0,
+      failed: data.data?.failed || 0,
+      progress: 100,
+      message: data.message,
+      errors: data.data?.errors,
+    };
+    onProgress(finalData);
+    return finalData;
+  }
+
+  const reader = response.body!.getReader();
+  const decoder = new TextDecoder('utf-8');
+  let buffer = '';
+  let latestData: BulkImportProgressData = {
+    type: 'start',
+    status: 'processing',
+    total: 0,
+    inserted: 0,
+    newModels: 0,
+    duplicates: 0,
+    failed: 0,
+    progress: 0,
+  };
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    buffer += decoder.decode(value, { stream: true });
+    const events = buffer.split('\n\n');
+    buffer = events.pop() || '';
+
+    for (const evt of events) {
+      const trimmed = evt.trim();
+      if (trimmed.startsWith('data:')) {
+        try {
+          const jsonStr = trimmed.replace(/^data:\s*/, '');
+          const parsed = JSON.parse(jsonStr) as BulkImportProgressData;
+          latestData = parsed;
+          onProgress(parsed);
+        } catch (parseErr) {
+          console.warn('Failed to parse progress chunk', parseErr);
+        }
+      }
+    }
+  }
+
+  if (buffer.trim().startsWith('data:')) {
+    try {
+      const jsonStr = buffer.trim().replace(/^data:\s*/, '');
+      const parsed = JSON.parse(jsonStr) as BulkImportProgressData;
+      latestData = parsed;
+      onProgress(parsed);
+    } catch (parseErr) {
+      // ignore
+    }
+  }
+
+  if (latestData.status === 'failed') {
+    throw new Error(latestData.message || 'Bulk import failed');
+  }
+
+  return latestData;
+};
+
+export const getBulkImportProgress = async (importId: string) => {
+  const response = await api.get(`/models/bulk-import/progress/${importId}`);
+  return response.data;
+};
+
 export const bulkImportModels = async (file: File) => {
   const formData = new FormData();
   formData.append('file', file);
